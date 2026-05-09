@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: smart-wild-orchestrator
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: 10000
