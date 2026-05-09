@@ -6,7 +6,7 @@ This is an orchestration layer for wild-safe. It is responsible for communicatio
 The ml-service can make a http post request to the service via the following contract.
 
 Strict contract:
-```
+```json
 {
   "incident_id": "string",
   "type": "animal_on_road | person_on_road | stopped_vehicle | road_obstruction | unknown",
@@ -36,7 +36,7 @@ Strict contract:
 ```
 
 Example:
-```
+```json
 {
   "incident_id": "inc_20260509_194231_abc123",
   "type": "animal_on_road",
