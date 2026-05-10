@@ -2,12 +2,17 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"net/http"
+	"sync"
 )
 
 var upgrader = websocket.Upgrader{}
+var clientHub = websocketClientHub{
+	clients: make(map[*websocket.Conn]bool),
+}
 
 func healthHandler(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
@@ -34,8 +39,17 @@ func alertHandler(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, fmt.Sprintf("invalid incident payload: %v", err), http.StatusBadRequest)
 		return
 	}
+	if err := incident.Validate(); err != nil {
+		http.Error(w, fmt.Sprintf("invalid incident payload: %v", err), http.StatusBadRequest)
+		return
+	}
 
 	fmt.Printf("alert received: %s (%s)\n", incident.ID, incident.Type)
+
+	if err := broadcastIncident(incident); err != nil {
+		http.Error(w, fmt.Sprintf("failed to broadcast incident: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
@@ -55,12 +69,64 @@ func handshakeHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	defer conn.Close()
+	clientHub.add(conn)
+	defer clientHub.remove(conn)
 
 	fmt.Println("Client connected")
+	for {
+		if _, _, err := conn.ReadMessage(); err != nil {
+			fmt.Printf("client disconnected: %v\n", err)
+			return
+		}
+	}
+}
 
-	// Write send information here
-	/* for {
+type websocketClientHub struct {
+	mu      sync.Mutex
+	clients map[*websocket.Conn]bool
+}
 
-	} */
+func (hub *websocketClientHub) add(conn *websocket.Conn) {
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+
+	hub.clients[conn] = true
+}
+
+func (hub *websocketClientHub) remove(conn *websocket.Conn) {
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+
+	delete(hub.clients, conn)
+	conn.Close()
+}
+
+func broadcastIncident(incident Incident) error {
+	message, err := json.Marshal(incident)
+	if err != nil {
+		return err
+	}
+
+	return clientHub.broadcast(message)
+}
+
+func (hub *websocketClientHub) broadcast(message []byte) error {
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+
+	var writeErrors []error
+	for client := range hub.clients {
+		err := client.WriteMessage(
+			websocket.TextMessage,
+			message,
+		)
+
+		if nil != err {
+			writeErrors = append(writeErrors, err)
+			client.Close()
+			delete(hub.clients, client)
+		}
+	}
+
+	return errors.Join(writeErrors...)
 }
