@@ -253,6 +253,22 @@
       line-height: 1.5;
     }
 
+    .json-key {
+      color: #9cdcfe;
+    }
+
+    .json-string {
+      color: #ce9178;
+    }
+
+    .json-number {
+      color: #b5cea8;
+    }
+
+    .json-literal {
+      color: #569cd6;
+    }
+
     ul {
       margin: 0;
       padding-left: 18px;
@@ -387,7 +403,7 @@
         <div class="panels">
           <div class="panel">
             <h3>Request body</h3>
-            <pre>{
+            <pre data-json>{
   "incident_id": "string",
   "type": "animal_on_road | person_on_road | stopped_vehicle | road_obstruction | unknown",
   "occurred_at": "ISO-8601 timestamp",
@@ -413,7 +429,7 @@
           <div class="panel compact">
             <div>
               <h3>Success</h3>
-              <pre>{
+              <pre data-json>{
   "status": "accepted",
   "incident_id": "inc_123"
 }</pre>
@@ -465,7 +481,7 @@
           </div>
           <div class="panel">
             <h3>Response</h3>
-            <pre>{
+            <pre data-json>{
   "status": "ok"
 }</pre>
           </div>
@@ -490,7 +506,30 @@
       </section>
     </div>
 
-    <footer>Wild Safe Orchestrator contract reference.</footer>
+  <footer>Wild Safe Orchestrator contract reference.</footer>
   </main>
+  <script>
+    const escapeHtml = (value) => value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    document.querySelectorAll("pre[data-json]").forEach((block) => {
+      const escaped = escapeHtml(block.textContent);
+      block.innerHTML = escaped.replace(
+        /("(?:\\.|[^"\\])*")(\s*:)?|(-?\d+(?:\.\d+)?)|\b(true|false|null)\b/g,
+        (_match, stringToken, colon, numberToken, literalToken) => {
+          if (stringToken) {
+            const className = colon ? "json-key" : "json-string";
+            return `<span class="${className}">${stringToken}</span>${colon || ""}`;
+          }
+          if (numberToken) {
+            return `<span class="json-number">${numberToken}</span>`;
+          }
+          return `<span class="json-literal">${literalToken}</span>`;
+        }
+      );
+    });
+  </script>
 </body>
 </html>
