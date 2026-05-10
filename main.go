@@ -9,6 +9,7 @@ import (
 func main() {
 	http.HandleFunc("/healthz", healthHandler)
 	http.HandleFunc("/alert", alertHandler)
+	http.HandleFunc("/handshake", handshakeHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

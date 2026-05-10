@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"net/http"
 )
 
@@ -42,4 +43,22 @@ func alertHandler(w http.ResponseWriter, req *http.Request) {
 	}); err != nil {
 		fmt.Printf("failed to write response: %v\n", err)
 	}
+}
+
+func handshakeHandler(w http.ResponseWriter, req *http.Request) {
+	conn, err := upgrader.Upgrade(w, req, nil)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	defer conn.close()
+
+	fmt.Println("Client connected")
+
+	// Write send information here
+	/* for {
+
+	} */
 }
