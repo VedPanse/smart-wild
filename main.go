@@ -7,9 +7,15 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/healthz", healthHandler)
-	http.HandleFunc("/alert", alertHandler)
-	http.HandleFunc("/handshake", handshakeHandler)
+	routes := map[string]http.HandlerFunc{
+		"/":          rootHandler,
+		"/healthz":   healthHandler,
+		"/alert":     alertHandler,
+		"/handshake": handshakeHandler,
+	}
+	for route, handler := range routes {
+		http.HandleFunc(route, handler)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -21,8 +27,4 @@ func main() {
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		fmt.Printf("server stopped: %v\n", err)
 	}
-
-	// TODO Push update to client app via websocket (along with details)
-	// TODO Push incident data to storage (database)
-	// TODO Notify client website (it will pull itself)
 }

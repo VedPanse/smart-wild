@@ -14,6 +14,19 @@ var clientHub = websocketClientHub{
 	clients: make(map[*websocket.Conn]bool),
 }
 
+func rootHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet && req.Method != http.MethodHead {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if req.URL.Path != "/" {
+		http.NotFound(w, req)
+		return
+	}
+
+	http.ServeFile(w, req, "index.html")
+}
+
 func healthHandler(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

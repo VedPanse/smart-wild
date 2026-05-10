@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wild Safe Orchestrator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #000;
+      --surface: #1c1c1e;
+      --surface-2: #2c2c2e;
+      --text: #f5f5f7;
+      --muted: #a1a1a6;
+      --line: rgba(255, 255, 255, 0.12);
+      --blue: #0a84ff;
+      --green: #30d158;
+      --red: #ff453a;
+      --orange: #ff9f0a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: rgba(28, 28, 30, 0.72);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+    }
+
+    nav, main {
+      width: min(980px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    nav {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .mark {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: linear-gradient(145deg, #30d158, #0a84ff);
+      color: #fff;
+    }
+
+    .mark svg, .icon svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 18px;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    main {
+      padding: 42px 0 56px;
+    }
+
+    .hero {
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(40px, 7vw, 72px);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 680px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 19px;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .routes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .route {
+      min-height: 118px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+    }
+
+    .route-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .method {
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(10, 132, 255, 0.16);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    code, pre {
+      font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    .route code {
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 650;
+    }
+
+    .route p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    section {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(44, 44, 46, 0.72);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(10, 132, 255, 0.16);
+      color: var(--blue);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .panels {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 1px;
+      background: var(--line);
+    }
+
+    .panel {
+      min-width: 0;
+      padding: 18px;
+      background: var(--surface);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+      text-transform: uppercase;
+    }
+
+    pre {
+      margin: 0;
+      padding: 14px;
+      overflow: auto;
+      border-radius: 14px;
+      background: #111;
+      color: #f5f5f7;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    li + li {
+      margin-top: 4px;
+    }
+
+    li code {
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .compact {
+      display: grid;
+      gap: 10px;
+    }
+
+    .line {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .line:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .line strong {
+      color: var(--text);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+      .nav-links {
+        display: none;
+      }
+
+      main {
+        padding-top: 28px;
+      }
+
+      .routes, .panels {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status {
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 3v18M5 12h14M7 7l10 10M17 7 7 17"/></svg>
+        </span>
+        Wild Safe Orchestrator
+      </div>
+      <div class="nav-links">
+        <a href="#alert">Alert</a>
+        <a href="#websocket">Websocket</a>
+        <a href="#health">Health</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>Orchestration Layer</h1>
+      <p class="lead">Receives ML incidents, validates the payload, and broadcasts accepted incidents to connected clients.</p>
+    </div>
+
+    <div class="routes" aria-label="Routes">
+      <article class="route">
+        <div class="route-top">
+          <code>/alert</code>
+          <span class="method">POST</span>
+        </div>
+        <p>ML service submits one incident.</p>
+      </article>
+
+      <article class="route">
+        <div class="route-top">
+          <code>/handshake</code>
+          <span class="method">WS</span>
+        </div>
+        <p>Client subscribes to incident broadcasts.</p>
+      </article>
+
+      <article class="route">
+        <div class="route-top">
+          <code>/healthz</code>
+          <span class="method">GET</span>
+        </div>
+        <p>Deployment health check.</p>
+      </article>
+    </div>
+
+    <div class="grid">
+      <section id="alert">
+        <div class="section-head">
+          <div class="section-title">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>
+            <h2>POST /alert</h2>
+          </div>
+          <span class="status">Input: incident JSON. Output: 202 JSON or error text.</span>
+        </div>
+        <div class="panels">
+          <div class="panel">
+            <h3>Request body</h3>
+            <pre>{
+  "incident_id": "string",
+  "type": "animal_on_road | person_on_road | stopped_vehicle | road_obstruction | unknown",
+  "occurred_at": "ISO-8601 timestamp",
+  "reported_at": "ISO-8601 timestamp",
+  "location": {
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "road_name": "string | null",
+    "direction": "string | null",
+    "mile_marker": "string | null",
+    "camera_id": "string"
+  },
+  "recommended_action": {
+    "priority": "low | medium | high | critical",
+    "message": "string"
+  },
+  "evidence": {
+    "snapshot_url": "string | null",
+    "video_clip_url": "string | null"
+  }
+}</pre>
+          </div>
+          <div class="panel compact">
+            <div>
+              <h3>Success</h3>
+              <pre>{
+  "status": "accepted",
+  "incident_id": "inc_123"
+}</pre>
+            </div>
+            <div>
+              <h3>Errors</h3>
+              <div class="compact">
+                <div class="line"><span>Invalid payload</span><strong>400</strong></div>
+                <div class="line"><span>Wrong method</span><strong>405</strong></div>
+                <div class="line"><span>Broadcast failure</span><strong>500</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="websocket">
+        <div class="section-head">
+          <div class="section-title">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12c2-3 4-4 7-4s5 1 7 4"/><path d="M8 16c1.2-1.6 2.4-2.2 4-2.2s2.8.6 4 2.2"/><path d="M12 19h.01"/></svg></span>
+            <h2>WS /handshake</h2>
+          </div>
+          <span class="status">Input: websocket upgrade. Output: accepted incident JSON messages.</span>
+        </div>
+        <div class="panels">
+          <div class="panel">
+            <h3>Connect</h3>
+            <pre>ws://localhost:8090/handshake</pre>
+          </div>
+          <div class="panel">
+            <h3>Message format</h3>
+            <pre>Same JSON object accepted by POST /alert.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="health">
+        <div class="section-head">
+          <div class="section-title">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h4l2-6 4 12 2-6h4"/></svg></span>
+            <h2>GET /healthz</h2>
+          </div>
+          <span class="status">Input: none. Output: health JSON.</span>
+        </div>
+        <div class="panels">
+          <div class="panel">
+            <h3>Request</h3>
+            <pre>GET /healthz</pre>
+          </div>
+          <div class="panel">
+            <h3>Response</h3>
+            <pre>{
+  "status": "ok"
+}</pre>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <div class="section-title">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s7-4 7-10V5l-7-3-7 3v6c0 6 7 10 7 10z"/><path d="m9 12 2 2 4-5"/></svg></span>
+            <h2>Validation</h2>
+          </div>
+          <span class="status">Unknown fields are rejected.</span>
+        </div>
+        <div class="panel">
+          <ul>
+            <li><code>incident_id</code>, <code>occurred_at</code>, <code>reported_at</code>, <code>location.camera_id</code>, and <code>recommended_action.message</code> are required.</li>
+            <li><code>type</code>: <code>animal_on_road</code>, <code>person_on_road</code>, <code>stopped_vehicle</code>, <code>road_obstruction</code>, <code>unknown</code>.</li>
+            <li><code>recommended_action.priority</code>: <code>low</code>, <code>medium</code>, <code>high</code>, <code>critical</code>.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <footer>Wild Safe Orchestrator contract reference.</footer>
+  </main>
+</body>
+</html>

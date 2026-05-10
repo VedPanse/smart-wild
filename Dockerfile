@@ -12,6 +12,7 @@ FROM alpine:3.22
 WORKDIR /app
 
 COPY --from=build /app/orchestrator /app/orchestrator
+COPY index.html /app/index.html
 
 ENV PORT=10000
 EXPOSE 10000
