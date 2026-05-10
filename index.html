@@ -103,7 +103,21 @@
     }
 
     .hero {
-      margin-bottom: 28px;
+      margin-bottom: 150px;
+      text-align: center;
+    }
+
+    .hero-mark {
+      width: 144px;
+      height: 144px;
+      margin: 0 auto 24px;
+      border-radius: 32px;
+    }
+
+    .hero-mark svg {
+      width: 86px;
+      height: 86px;
+      stroke-width: 1.8;
     }
 
     h1 {
@@ -114,10 +128,11 @@
     }
 
     .lead {
-      max-width: 680px;
-      margin: 0;
-      color: var(--muted);
-      font-size: 19px;
+      max-width: 820px;
+      margin: 0 auto;
+      color: white;
+      font-size: 32px;
+      text-align: center;
       line-height: 1.45;
     }
 
@@ -361,6 +376,9 @@
 
   <main>
     <div class="hero">
+      <span class="mark hero-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 3v18M5 12h14M7 7l10 10M17 7 7 17"/></svg>
+      </span>
       <h1>Orchestration Layer</h1>
       <p class="lead">Receives ML incidents, validates the payload, and broadcasts accepted incidents to connected clients.</p>
     </div>
@@ -457,7 +475,7 @@
         <div class="panels">
           <div class="panel">
             <h3>Connect</h3>
-            <pre>ws://localhost:8090/handshake</pre>
+            <pre>wss://smart-wild.onrender.com/handshake</pre>
           </div>
           <div class="panel">
             <h3>Message format</h3>

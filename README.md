@@ -2,6 +2,8 @@
 
 This is an orchestration layer for wild-safe. It is responsible for communication across microservices and ensuring concurrency and parallelism along with incident report broadcasting across multiple clients.
 
+Hosted at: https://smart-wild.onrender.com
+
 ## Incoming POST requests
 The ml-service can make a http post request to the service via the following contract.
 
