@@ -7,6 +7,8 @@ import (
 	"net/http"
 )
 
+var upgrader = websocket.Upgrader{}
+
 func healthHandler(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -53,7 +55,7 @@ func handshakeHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	defer conn.close()
+	defer conn.Close()
 
 	fmt.Println("Client connected")
 
