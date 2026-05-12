@@ -4,24 +4,57 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func sendToDatabase(incident Incident) {
-	var connString = os.Getenv("EXTERNAL_DATABASE_URL")
-	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, connString)
+var databasePool *pgxpool.Pool
 
-	if nil != err {
-		fmt.Printf("Some error with database: %s", err)
+func initDatabase(ctx context.Context) error {
+	connString := os.Getenv("EXTERNAL_DATABASE_URL")
+	if connString == "" {
+		return nil
+	}
+
+	config, err := pgxpool.ParseConfig(connString)
+	if err != nil {
+		return fmt.Errorf("parse database config: %w", err)
+	}
+	config.MaxConns = 5
+	config.MinConns = 1
+	config.MaxConnLifetime = 30 * time.Minute
+	config.MaxConnIdleTime = 5 * time.Minute
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return fmt.Errorf("create database pool: %w", err)
+	}
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return fmt.Errorf("ping database: %w", err)
+	}
+
+	databasePool = pool
+	return nil
+}
+
+func closeDatabase() {
+	if databasePool != nil {
+		databasePool.Close()
+	}
+}
+
+func sendToDatabase(incident Incident) {
+	if databasePool == nil {
+		fmt.Println("database pool is not configured")
 		return
 	}
 
-	defer conn.Close(ctx)
-	fmt.Println("Connected")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	tx, err := conn.Begin(ctx)
+	tx, err := databasePool.Begin(ctx)
 	if err != nil {
 		fmt.Printf("failed to begin database transaction: %v\n", err)
 		return

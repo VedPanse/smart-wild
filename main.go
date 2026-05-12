@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -12,6 +14,13 @@ func main() {
 	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
 		fmt.Printf("failed to load .env: %v\n", err)
 	}
+
+	dbCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	if err := initDatabase(dbCtx); err != nil {
+		fmt.Printf("failed to initialize database: %v\n", err)
+	}
+	cancel()
+	defer closeDatabase()
 
 	routes := map[string]http.HandlerFunc{
 		"/":          rootHandler,

@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
+const clientSendBuffer = 16
+
 var upgrader = websocket.Upgrader{}
 var clientHub = websocketClientHub{
-	clients: make(map[*websocket.Conn]bool),
+	clients: make(map[*websocketClient]bool),
 }
 
 func rootHandler(w http.ResponseWriter, req *http.Request) {
@@ -62,34 +65,24 @@ func alertHandler(w http.ResponseWriter, req *http.Request) {
 
 	fmt.Printf("alert received: %s (%s)\n", incident.ID, incident.Type)
 
-	var wg sync.WaitGroup
-	wg.Add(2)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	if err := json.NewEncoder(w).Encode(map[string]string{
+		"status":      "accepted",
+		"incident_id": incident.ID,
+	}); err != nil {
+		fmt.Printf("failed to write response: %v\n", err)
+	}
 
-	// Send to client via websocket
 	go func() {
-		defer wg.Done()
 		if err := broadcastIncident(incident); err != nil {
-			http.Error(w, fmt.Sprintf("failed to broadcast incident: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-		if err := json.NewEncoder(w).Encode(map[string]string{
-			"status":      "accepted",
-			"incident_id": incident.ID,
-		}); err != nil {
-			fmt.Printf("failed to write response: %v\n", err)
+			fmt.Printf("failed to broadcast incident: %v\n", err)
 		}
 	}()
 
-	// Send to database
 	go func() {
-		defer wg.Done()
 		sendToDatabase(incident)
 	}()
-
-	wg.Wait()
 }
 
 func handshakeHandler(w http.ResponseWriter, req *http.Request) {
@@ -100,8 +93,9 @@ func handshakeHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	clientHub.add(conn)
-	defer clientHub.remove(conn)
+	client := clientHub.add(conn)
+	defer clientHub.remove(client)
+	go client.writePump()
 
 	fmt.Println("Client connected")
 	for {
@@ -112,24 +106,40 @@ func handshakeHandler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+type websocketClient struct {
+	conn *websocket.Conn
+	send chan []byte
+}
+
 type websocketClientHub struct {
 	mu      sync.Mutex
-	clients map[*websocket.Conn]bool
+	clients map[*websocketClient]bool
 }
 
-func (hub *websocketClientHub) add(conn *websocket.Conn) {
+func (hub *websocketClientHub) add(conn *websocket.Conn) *websocketClient {
+	client := &websocketClient{
+		conn: conn,
+		send: make(chan []byte, clientSendBuffer),
+	}
+
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
-	hub.clients[conn] = true
+	hub.clients[client] = true
+	return client
 }
 
-func (hub *websocketClientHub) remove(conn *websocket.Conn) {
+func (hub *websocketClientHub) remove(client *websocketClient) {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
-	delete(hub.clients, conn)
-	conn.Close()
+	if _, ok := hub.clients[client]; !ok {
+		return
+	}
+
+	delete(hub.clients, client)
+	close(client.send)
+	client.conn.Close()
 }
 
 func broadcastIncident(incident Incident) error {
@@ -147,17 +157,30 @@ func (hub *websocketClientHub) broadcast(message []byte) error {
 
 	var writeErrors []error
 	for client := range hub.clients {
-		err := client.WriteMessage(
-			websocket.TextMessage,
-			message,
-		)
-
-		if nil != err {
-			writeErrors = append(writeErrors, err)
-			client.Close()
+		select {
+		case client.send <- message:
+		default:
+			writeErrors = append(writeErrors, errors.New("websocket client send buffer is full"))
 			delete(hub.clients, client)
+			close(client.send)
+			client.conn.Close()
 		}
 	}
 
 	return errors.Join(writeErrors...)
+}
+
+func (client *websocketClient) writePump() {
+	defer clientHub.remove(client)
+
+	for message := range client.send {
+		if err := client.conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+			fmt.Printf("failed to set websocket write deadline: %v\n", err)
+			return
+		}
+		if err := client.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+			fmt.Printf("failed to write websocket message: %v\n", err)
+			return
+		}
+	}
 }
