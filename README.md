@@ -65,3 +65,6 @@ Example:
   }
 }
 ```
+
+## Remaining Tasks
+- [ ] Complete the layer between flutter app and the Raspberry Pi so that a sound is played only when there are cars around.

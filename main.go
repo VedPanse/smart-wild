@@ -27,6 +27,7 @@ func main() {
 		"/healthz":   healthHandler,
 		"/alert":     alertHandler,
 		"/handshake": handshakeHandler,
+		"/events":    sseHandler,
 	}
 	for route, handler := range routes {
 		http.HandleFunc(route, handler)

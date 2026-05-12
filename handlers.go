@@ -17,6 +17,9 @@ var upgrader = websocket.Upgrader{}
 var clientHub = websocketClientHub{
 	clients: make(map[*websocketClient]bool),
 }
+var sseHub = sseClientHub{
+	clients: make(map[*sseClient]bool),
+}
 
 func rootHandler(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet && req.Method != http.MethodHead {
@@ -77,6 +80,12 @@ func alertHandler(w http.ResponseWriter, req *http.Request) {
 	go func() {
 		if err := broadcastIncident(incident); err != nil {
 			fmt.Printf("failed to broadcast incident: %v\n", err)
+		}
+	}()
+
+	go func() {
+		if err := broadcastIncidentSSE(incident); err != nil {
+			fmt.Printf("failed to broadcast incident over SSE: %v\n", err)
 		}
 	}()
 
@@ -183,4 +192,107 @@ func (client *websocketClient) writePump() {
 			return
 		}
 	}
+}
+
+func sseHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	client := sseHub.add()
+	defer sseHub.remove(client)
+
+	fmt.Fprintf(w, "event: ready\ndata: {}\n\n")
+	flusher.Flush()
+
+	keepalive := time.NewTicker(25 * time.Second)
+	defer keepalive.Stop()
+
+	for {
+		select {
+		case <-req.Context().Done():
+			return
+		case message, ok := <-client.send:
+			if !ok {
+				return
+			}
+			fmt.Fprintf(w, "event: incident\ndata: %s\n\n", message)
+			flusher.Flush()
+		case <-keepalive.C:
+			fmt.Fprintf(w, ": keepalive\n\n")
+			flusher.Flush()
+		}
+	}
+}
+
+type sseClient struct {
+	send chan []byte
+}
+
+type sseClientHub struct {
+	mu      sync.Mutex
+	clients map[*sseClient]bool
+}
+
+func (hub *sseClientHub) add() *sseClient {
+	client := &sseClient{
+		send: make(chan []byte, clientSendBuffer),
+	}
+
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+
+	hub.clients[client] = true
+	return client
+}
+
+func (hub *sseClientHub) remove(client *sseClient) {
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+
+	if _, ok := hub.clients[client]; !ok {
+		return
+	}
+
+	delete(hub.clients, client)
+	close(client.send)
+}
+
+func broadcastIncidentSSE(incident Incident) error {
+	message, err := json.Marshal(incident)
+	if err != nil {
+		return err
+	}
+
+	return sseHub.broadcast(message)
+}
+
+func (hub *sseClientHub) broadcast(message []byte) error {
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+
+	var writeErrors []error
+	for client := range hub.clients {
+		select {
+		case client.send <- message:
+		default:
+			writeErrors = append(writeErrors, errors.New("sse client send buffer is full"))
+			delete(hub.clients, client)
+			close(client.send)
+		}
+	}
+
+	return errors.Join(writeErrors...)
 }
