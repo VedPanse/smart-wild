@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"net/http"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{}
@@ -40,11 +41,13 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func alertHandler(w http.ResponseWriter, req *http.Request) {
+	// Make sure method is post
 	if req.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// JSON -> Incident
 	var incident Incident
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
@@ -59,19 +62,34 @@ func alertHandler(w http.ResponseWriter, req *http.Request) {
 
 	fmt.Printf("alert received: %s (%s)\n", incident.ID, incident.Type)
 
-	if err := broadcastIncident(incident); err != nil {
-		http.Error(w, fmt.Sprintf("failed to broadcast incident: %v", err), http.StatusInternalServerError)
-		return
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
-	if err := json.NewEncoder(w).Encode(map[string]string{
-		"status":      "accepted",
-		"incident_id": incident.ID,
-	}); err != nil {
-		fmt.Printf("failed to write response: %v\n", err)
-	}
+	// Send to client via websocket
+	go func() {
+		defer wg.Done()
+		if err := broadcastIncident(incident); err != nil {
+			http.Error(w, fmt.Sprintf("failed to broadcast incident: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		if err := json.NewEncoder(w).Encode(map[string]string{
+			"status":      "accepted",
+			"incident_id": incident.ID,
+		}); err != nil {
+			fmt.Printf("failed to write response: %v\n", err)
+		}
+	}()
+
+	// Send to database
+	go func() {
+		defer wg.Done()
+		sendToDatabase(incident)
+	}()
+
+	wg.Wait()
 }
 
 func handshakeHandler(w http.ResponseWriter, req *http.Request) {

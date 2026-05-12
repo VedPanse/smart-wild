@@ -1,0 +1,1 @@
+render psql dpg-d80ngijtqb8s738c5mgg-a "$@"
