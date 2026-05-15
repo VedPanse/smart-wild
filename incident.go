@@ -26,13 +26,14 @@ const (
 )
 
 type Incident struct {
-	ID                string            `json:"incident_id"`
-	Type              IncidentType      `json:"type"`
-	OccurredAt        time.Time         `json:"occurred_at"`
-	ReportedAt        time.Time         `json:"reported_at"`
-	Location          Location          `json:"location"`
-	RecommendedAction RecommendedAction `json:"recommended_action"`
-	Evidence          Evidence          `json:"evidence"`
+	ID                 string            `json:"incident_id"`
+	Type               IncidentType      `json:"type"`
+	OccurredAt         time.Time         `json:"occurred_at"`
+	ReportedAt         time.Time         `json:"reported_at"`
+	SpeakerFrequencyHz int               `json:"speaker_frequency_hz,omitempty"`
+	Location           Location          `json:"location"`
+	RecommendedAction  RecommendedAction `json:"recommended_action"`
+	Evidence           Evidence          `json:"evidence"`
 }
 
 type Location struct {

@@ -14,6 +14,7 @@ Strict contract:
   "type": "animal_on_road | person_on_road | stopped_vehicle | road_obstruction | unknown",
   "occurred_at": "ISO-8601 timestamp",
   "reported_at": "ISO-8601 timestamp",
+  "speaker_frequency_hz": "number | optional",
 
   "location": {
     "latitude": "number",
@@ -44,6 +45,7 @@ Example:
   "type": "animal_on_road",
   "occurred_at": "2026-05-09T19:42:31.123Z",
   "reported_at": "2026-05-09T19:42:33.456Z",
+  "speaker_frequency_hz": 20000,
 
   "location": {
     "latitude": 37.7749,
