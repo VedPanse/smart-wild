@@ -4,6 +4,26 @@ This is an orchestration layer for wild-safe. It is responsible for communicatio
 
 Hosted at: https://smart-wild.onrender.com
 
+## Temporary SSE test broadcast
+This test build emits synthetic `incident` SSE events on `/events` once per second for 10 seconds after startup.
+
+To manually trigger another 10-second burst:
+
+```sh
+curl -X POST https://smart-wild.onrender.com/test/sse-broadcast
+```
+
+To watch the stream from a Raspberry Pi or local shell:
+
+```sh
+curl -N https://smart-wild.onrender.com/events
+```
+
+Disable the test behavior before returning to normal production traffic by removing or setting these Render environment variables to `false`:
+
+- `SSE_TEST_BROADCAST_ENABLED`
+- `SSE_TEST_BROADCAST_ON_START`
+
 ## Incoming POST requests
 The ml-service can make a http post request to the service via the following contract.
 

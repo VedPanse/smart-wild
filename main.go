@@ -23,14 +23,24 @@ func main() {
 	defer closeDatabase()
 
 	routes := map[string]http.HandlerFunc{
-		"/":          rootHandler,
-		"/healthz":   healthHandler,
-		"/alert":     alertHandler,
-		"/handshake": handshakeHandler,
-		"/events":    sseHandler,
+		"/":                   rootHandler,
+		"/healthz":            healthHandler,
+		"/alert":              alertHandler,
+		"/handshake":          handshakeHandler,
+		"/events":             sseHandler,
+		"/test/sse-broadcast": sseTestBroadcastHandler,
 	}
 	for route, handler := range routes {
 		http.HandleFunc(route, handler)
+	}
+
+	if os.Getenv("SSE_TEST_BROADCAST_ON_START") == "true" {
+		go func() {
+			time.Sleep(2 * time.Second)
+			if started := startSSETestBroadcast("startup"); !started {
+				fmt.Println("SSE test broadcast was already running")
+			}
+		}()
 	}
 
 	port := os.Getenv("PORT")
