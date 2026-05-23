@@ -149,7 +149,7 @@ func testIncident(sequence int, now time.Time) Incident {
 			RoadName:   &roadName,
 			Direction:  &direction,
 			MileMarker: &mileMarker,
-			CameraID:   "rpi-sse-test",
+			CameraID:   "rpi-roadside-001",
 		},
 		RecommendedAction: RecommendedAction{
 			Priority: PriorityHigh,
